@@ -1,6 +1,6 @@
 # Product Microservice for Student Marketplace
 
-Houses all logic related to selling, listing and buying products in the student marketplace.
+Houses all logic related to selling, listing and buying products in the student marketplace. Built with NestJS and TypeScript.
 
 ## Features
 
@@ -44,3 +44,56 @@ Houses all logic related to selling, listing and buying products in the student 
 - `PATCH /products/{prod_id}/mark-sold` - Mark as sold
 - `PATCH /products/{prod_id}/archive` - Archive product
 - `PATCH /products/{prod_id}/restore` - Restore archived product
+
+## Tech Stack
+
+- **Framework**: NestJS
+- **Language**: TypeScript
+- **Validation**: class-validator, class-transformer
+- **Documentation**: Swagger/OpenAPI
+
+## Running the Service
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode
+npm run start:dev
+
+# Production build
+npm run build
+npm run start:prod
+```
+
+The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+
+## Development
+
+```bash
+# Run linting
+npm run lint
+
+# Format code
+npm run format
+```
+
+## Project Structure
+
+```
+src/
+├── products/
+│   ├── dto/                    # Data Transfer Objects
+│   │   ├── create-product.dto.ts
+│   │   ├── update-product.dto.ts
+│   │   ├── product-filters.dto.ts
+│   │   ├── product-search.dto.ts
+│   │   └── update-availability.dto.ts
+│   ├── entities/               # Database entities
+│   │   └── product.entity.ts
+│   ├── products.controller.ts  # HTTP endpoints
+│   ├── products.service.ts     # Business logic
+│   └── products.module.ts      # Module definition
+├── app.module.ts               # Root module
+└── main.ts                     # Application entry point
+```
