@@ -63,10 +63,8 @@ export class ProductsService {
   }
 
   search(searchDto: ProductSearchDto): Product[] {
-    // First apply filters if provided
     let results = searchDto.filters ? this.findAll(searchDto.filters) : Array.from(this.products.values());
 
-    // Then apply text search
     const queryLower = searchDto.query.toLowerCase();
     return results.filter(product => 
       product.prod_name.toLowerCase().includes(queryLower) ||
@@ -78,7 +76,6 @@ export class ProductsService {
   update(id: string, updateProductDto: UpdateProductDto): Product {
     const product = this.findOne(id);
     
-    // Update only provided fields
     Object.keys(updateProductDto).forEach(key => {
       if (updateProductDto[key] !== undefined) {
         product[key] = updateProductDto[key];

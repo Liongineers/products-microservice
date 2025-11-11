@@ -28,10 +28,10 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   const port = process.env.PORT || 8000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   
-  console.log(`🚀 Products microservice running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  console.log(`🚀 Products microservice running on: http://0.0.0.0:${port}`);
+  console.log(`📚 API Documentation: http://0.0.0.0:${port}/docs`);
 }
 
 bootstrap();
