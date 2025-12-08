@@ -4,10 +4,10 @@ import { IsString, IsNumber, IsUUID, IsOptional, Min, IsPositive } from 'class-v
 export class CreateProductDto {
   @ApiProperty({
     description: 'Product name',
-    example: 'MacBook Pro 13-inch',
+    example: 'Laptop',
   })
   @IsString()
-  prod_name: string;
+  product_name: string;
 
   @ApiProperty({
     description: 'Product category',
@@ -17,11 +17,11 @@ export class CreateProductDto {
   category: string;
 
   @ApiProperty({
-    description: 'Seller UUID',
+    description: 'Seller UUID (validated by composite service)',
     example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @IsUUID()
-  seller_info: string;
+  seller_id: string;
 
   @ApiProperty({
     description: 'Product description',

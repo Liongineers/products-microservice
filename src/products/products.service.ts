@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Like, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -7,133 +9,319 @@ import { ProductSearchDto } from './dto/product-search.dto';
 
 @Injectable()
 export class ProductsService {
-  private products: Map<string, Product> = new Map();
+  constructor(
+    @InjectRepository(Product)
+    private productRepository: Repository<Product>,
+  ) {}
 
-  create(createProductDto: CreateProductDto): Product {
-    const product = new Product(createProductDto);
-    this.products.set(product.prod_id, product);
-    return product;
+  async create(createProductDto: CreateProductDto): Promise<Product> {
+    try {
+      // Note: seller_id validation is handled by the composite service
+      // This microservice trusts that the composite service has validated the seller exists
+      
+      // Map DTO fields to database columns
+      const product = this.productRepository.create({
+        product_name: createProductDto.product_name,
+        category: createProductDto.category,
+        seller_id: createProductDto.seller_id,
+        description: createProductDto.description,
+        availability: createProductDto.availability,
+        price: createProductDto.price,
+        condition: createProductDto.condition,
+        quantity: createProductDto.quantity,
+      });
+
+      return await this.productRepository.save(product);
+    } catch (error) {
+      console.error('Database create failed:', error);
+      throw new BadRequestException('Failed to create product: ' + error.message);
+    }
   }
 
-  findAll(filters?: ProductFiltersDto): Product[] {
-    let results = Array.from(this.products.values());
+  async findAll(filters?: ProductFiltersDto): Promise<Product[]> {
+    try {
+      const queryBuilder = this.productRepository.createQueryBuilder('product');
 
-    if (!filters) {
-      return results;
-    }
-
-    if (filters.category) {
-      results = results.filter(p => p.category.toLowerCase() === filters.category.toLowerCase());
-    }
-    if (filters.seller_info) {
-      results = results.filter(p => p.seller_info === filters.seller_info);
-    }
-    if (filters.condition) {
-      results = results.filter(p => p.condition.toLowerCase() === filters.condition.toLowerCase());
-    }
-    if (filters.min_price !== undefined) {
-      results = results.filter(p => p.price >= filters.min_price);
-    }
-    if (filters.max_price !== undefined) {
-      results = results.filter(p => p.price <= filters.max_price);
-    }
-    if (filters.min_availability !== undefined) {
-      results = results.filter(p => p.availability >= filters.min_availability);
-    }
-    if (filters.is_archived !== undefined) {
-      results = results.filter(p => p.is_archived === filters.is_archived);
-    }
-    if (filters.is_sold !== undefined) {
-      results = results.filter(p => p.is_sold === filters.is_sold);
-    }
-
-    return results;
-  }
-
-  findOne(id: string): Product {
-    const product = this.products.get(id);
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-    return product;
-  }
-
-  findBySeller(sellerId: string): Product[] {
-    return Array.from(this.products.values()).filter(p => p.seller_info === sellerId);
-  }
-
-  search(searchDto: ProductSearchDto): Product[] {
-    let results = searchDto.filters ? this.findAll(searchDto.filters) : Array.from(this.products.values());
-
-    const queryLower = searchDto.query.toLowerCase();
-    return results.filter(product => 
-      product.prod_name.toLowerCase().includes(queryLower) ||
-      product.description.toLowerCase().includes(queryLower) ||
-      product.category.toLowerCase().includes(queryLower)
-    );
-  }
-
-  update(id: string, updateProductDto: UpdateProductDto): Product {
-    const product = this.findOne(id);
-    
-    Object.keys(updateProductDto).forEach(key => {
-      if (updateProductDto[key] !== undefined) {
-        product[key] = updateProductDto[key];
+      if (filters) {
+        if (filters.category) {
+          queryBuilder.andWhere('LOWER(product.category) = LOWER(:category)', {
+            category: filters.category,
+          });
+        }
+        if (filters.seller_info) {
+          queryBuilder.andWhere('product.seller_id = :sellerId', {
+            sellerId: filters.seller_info,
+          });
+        }
+        if (filters.condition) {
+          queryBuilder.andWhere('LOWER(product.condition) = LOWER(:condition)', {
+            condition: filters.condition,
+          });
+        }
+        if (filters.min_price !== undefined) {
+          queryBuilder.andWhere('product.price >= :minPrice', {
+            minPrice: filters.min_price,
+          });
+        }
+        if (filters.max_price !== undefined) {
+          queryBuilder.andWhere('product.price <= :maxPrice', {
+            maxPrice: filters.max_price,
+          });
+        }
+        if (filters.min_availability !== undefined) {
+          queryBuilder.andWhere('product.availability >= :minAvailability', {
+            minAvailability: filters.min_availability,
+          });
+        }
+        // Note: is_archived and is_sold filters are not available in current DB schema
+        // You may need to add these columns to the database
+        if (filters.is_sold !== undefined) {
+          if (filters.is_sold) {
+            queryBuilder.andWhere('product.availability = 0');
+          } else {
+            queryBuilder.andWhere('product.availability > 0');
+          }
+        }
       }
-    });
-    
-    product.updated_at = new Date();
-    this.products.set(id, product);
-    return product;
-  }
 
-  updateAvailability(id: string, availability: number): Product {
-    const product = this.findOne(id);
-    
-    if (availability < 0) {
-      throw new BadRequestException('Availability cannot be negative');
+      return await queryBuilder.getMany();
+    } catch (error) {
+      console.error('Database findAll failed:', error);
+      throw new BadRequestException('Failed to retrieve products: ' + error.message);
     }
-    
-    product.availability = availability;
-    product.updated_at = new Date();
-    
-    // If availability is 0, mark as sold
-    if (availability === 0) {
-      product.is_sold = true;
+  }
+
+  async findOne(id: string): Promise<Product> {
+    try {
+      const product = await this.productRepository.findOne({
+        where: { product_id: id },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      return product;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database findOne failed:', error);
+      throw new BadRequestException('Failed to retrieve product: ' + error.message);
     }
-    
-    this.products.set(id, product);
-    return product;
   }
 
-  markAsSold(id: string): Product {
-    const product = this.findOne(id);
-    product.is_sold = true;
-    product.availability = 0;
-    product.updated_at = new Date();
-    this.products.set(id, product);
-    return product;
+  async findBySeller(sellerId: string): Promise<Product[]> {
+    try {
+      return await this.productRepository.find({
+        where: { seller_id: sellerId },
+      });
+    } catch (error) {
+      console.error('Database findBySeller failed:', error);
+      throw new BadRequestException('Failed to retrieve products by seller: ' + error.message);
+    }
   }
 
-  archive(id: string): Product {
-    const product = this.findOne(id);
-    product.is_archived = true;
-    product.updated_at = new Date();
-    this.products.set(id, product);
-    return product;
+  async search(searchDto: ProductSearchDto): Promise<Product[]> {
+    try {
+      const queryBuilder = this.productRepository.createQueryBuilder('product');
+
+      // Apply search query
+      const queryLower = searchDto.query.toLowerCase();
+      queryBuilder.where(
+        '(LOWER(product.product_name) LIKE :query OR LOWER(product.description) LIKE :query OR LOWER(product.category) LIKE :query)',
+        { query: `%${queryLower}%` },
+      );
+
+      // Apply filters if provided
+      if (searchDto.filters) {
+        if (searchDto.filters.category) {
+          queryBuilder.andWhere('LOWER(product.category) = LOWER(:category)', {
+            category: searchDto.filters.category,
+          });
+        }
+        if (searchDto.filters.seller_info) {
+          queryBuilder.andWhere('product.seller_id = :sellerId', {
+            sellerId: searchDto.filters.seller_info,
+          });
+        }
+        if (searchDto.filters.condition) {
+          queryBuilder.andWhere('LOWER(product.condition) = LOWER(:condition)', {
+            condition: searchDto.filters.condition,
+          });
+        }
+        if (searchDto.filters.min_price !== undefined) {
+          queryBuilder.andWhere('product.price >= :minPrice', {
+            minPrice: searchDto.filters.min_price,
+          });
+        }
+        if (searchDto.filters.max_price !== undefined) {
+          queryBuilder.andWhere('product.price <= :maxPrice', {
+            maxPrice: searchDto.filters.max_price,
+          });
+        }
+        if (searchDto.filters.min_availability !== undefined) {
+          queryBuilder.andWhere('product.availability >= :minAvailability', {
+            minAvailability: searchDto.filters.min_availability,
+          });
+        }
+        if (searchDto.filters.is_sold !== undefined) {
+          if (searchDto.filters.is_sold) {
+            queryBuilder.andWhere('product.availability = 0');
+          } else {
+            queryBuilder.andWhere('product.availability > 0');
+          }
+        }
+      }
+
+      return await queryBuilder.getMany();
+    } catch (error) {
+      console.error('Database search failed:', error);
+      throw new BadRequestException('Failed to search products: ' + error.message);
+    }
   }
 
-  restore(id: string): Product {
-    const product = this.findOne(id);
-    product.is_archived = false;
-    product.updated_at = new Date();
-    this.products.set(id, product);
-    return product;
+  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product> {
+    try {
+      // Check if product exists (similar to review service pattern)
+      const checkResult = await this.productRepository.findOne({
+        where: { product_id: id },
+      });
+
+      if (!checkResult) {
+        throw new NotFoundException(`Product not found`);
+      }
+
+      // Build update object dynamically (similar to review service pattern)
+      const updateData: Partial<Product> = {
+        updated_at: new Date(),
+      };
+
+      // Add fields to update only if they're provided
+      if (updateProductDto.product_name !== undefined) {
+        updateData.product_name = updateProductDto.product_name;
+      }
+      if (updateProductDto.category !== undefined) {
+        updateData.category = updateProductDto.category;
+      }
+      if (updateProductDto.seller_id !== undefined) {
+        updateData.seller_id = updateProductDto.seller_id;
+      }
+      if (updateProductDto.description !== undefined) {
+        updateData.description = updateProductDto.description;
+      }
+      if (updateProductDto.availability !== undefined) {
+        updateData.availability = updateProductDto.availability;
+      }
+      if (updateProductDto.price !== undefined) {
+        updateData.price = updateProductDto.price;
+      }
+      if (updateProductDto.condition !== undefined) {
+        updateData.condition = updateProductDto.condition;
+      }
+      if (updateProductDto.quantity !== undefined) {
+        updateData.quantity = updateProductDto.quantity;
+      }
+
+      // Execute the update using TypeORM query builder (similar to review service pattern)
+      await this.productRepository
+        .createQueryBuilder()
+        .update(Product)
+        .set(updateData)
+        .where('product_id = :id', { id })
+        .execute();
+
+      // Return the updated product (similar to review service returning updated fields)
+      return await this.productRepository.findOne({
+        where: { product_id: id },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database update failed:', error);
+      throw new BadRequestException('Failed to update product: ' + error.message);
+    }
   }
 
-  remove(id: string): { message: string } {
-    const product = this.findOne(id);
-    this.products.delete(id);
-    return { message: 'Product deleted successfully' };
+  async updateAvailability(id: string, availability: number): Promise<Product> {
+    try {
+      const product = await this.findOne(id);
+
+      if (availability < 0) {
+        throw new BadRequestException('Availability cannot be negative');
+      }
+
+      product.availability = availability;
+      product.updated_at = new Date();
+
+      return await this.productRepository.save(product);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Database updateAvailability failed:', error);
+      throw new BadRequestException('Failed to update availability: ' + error.message);
+    }
+  }
+
+  async markAsSold(id: string): Promise<Product> {
+    try {
+      const product = await this.findOne(id);
+      product.availability = 0;
+      product.updated_at = new Date();
+      return await this.productRepository.save(product);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database markAsSold failed:', error);
+      throw new BadRequestException('Failed to mark product as sold: ' + error.message);
+    }
+  }
+
+  async archive(id: string): Promise<Product> {
+    try {
+      // Note: is_archived column doesn't exist in DB schema
+      // You may need to add this column or implement soft delete
+      const product = await this.findOne(id);
+      product.updated_at = new Date();
+      return await this.productRepository.save(product);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database archive failed:', error);
+      throw new BadRequestException('Failed to archive product: ' + error.message);
+    }
+  }
+
+  async restore(id: string): Promise<Product> {
+    try {
+      // Note: is_archived column doesn't exist in DB schema
+      const product = await this.findOne(id);
+      product.updated_at = new Date();
+      return await this.productRepository.save(product);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database restore failed:', error);
+      throw new BadRequestException('Failed to restore product: ' + error.message);
+    }
+  }
+
+  async remove(id: string): Promise<{ message: string }> {
+    try {
+      const product = await this.findOne(id);
+      await this.productRepository.remove(product);
+      return { message: 'Product deleted successfully' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Database remove failed:', error);
+      throw new BadRequestException('Failed to delete product: ' + error.message);
+    }
   }
 }

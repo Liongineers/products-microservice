@@ -4,12 +4,12 @@ import { IsString, IsNumber, IsUUID, IsOptional, Min, IsPositive, IsBoolean } fr
 export class UpdateProductDto {
   @ApiProperty({
     description: 'Product name',
-    example: 'MacBook Pro 13-inch',
+    example: 'Laptop',
     required: false,
   })
   @IsOptional()
   @IsString()
-  prod_name?: string;
+  product_name?: string;
 
   @ApiProperty({
     description: 'Product category',
@@ -27,7 +27,7 @@ export class UpdateProductDto {
   })
   @IsOptional()
   @IsUUID()
-  seller_info?: string;
+  seller_id?: string;
 
   @ApiProperty({
     description: 'Product description',

@@ -42,8 +42,8 @@ export class ProductsController {
     status: 400,
     description: 'Bad request - validation failed',
   })
-  create(@Body() createProductDto: CreateProductDto): Product {
-    return this.productsService.create(createProductDto);
+  async create(@Body() createProductDto: CreateProductDto): Promise<Product> {
+    return await this.productsService.create(createProductDto);
   }
 
   @Get()
@@ -61,7 +61,7 @@ export class ProductsController {
   @ApiQuery({ name: 'min_availability', required: false, description: 'Minimum availability filter' })
   @ApiQuery({ name: 'is_archived', required: false, description: 'Filter by archived status' })
   @ApiQuery({ name: 'is_sold', required: false, description: 'Filter by sold status' })
-  findAll(
+  async findAll(
     @Query('category') category?: string,
     @Query('seller_info') seller_info?: string,
     @Query('condition') condition?: string,
@@ -70,7 +70,7 @@ export class ProductsController {
     @Query('min_availability') min_availability?: number,
     @Query('is_archived') is_archived?: boolean,
     @Query('is_sold') is_sold?: boolean,
-  ): Product[] {
+  ): Promise<Product[]> {
     const filters: ProductFiltersDto = {
       category,
       seller_info,
@@ -81,7 +81,7 @@ export class ProductsController {
       is_archived,
       is_sold,
     };
-    return this.productsService.findAll(filters);
+    return await this.productsService.findAll(filters);
   }
 
   @Get('seller/:seller_id')
@@ -92,8 +92,8 @@ export class ProductsController {
     description: 'Products retrieved successfully',
     type: [Product],
   })
-  findBySeller(@Param('seller_id') sellerId: string): Product[] {
-    return this.productsService.findBySeller(sellerId);
+  async findBySeller(@Param('seller_id') sellerId: string): Promise<Product[]> {
+    return await this.productsService.findBySeller(sellerId);
   }
 
   @Post('search')
@@ -104,8 +104,8 @@ export class ProductsController {
     description: 'Search results retrieved successfully',
     type: [Product],
   })
-  search(@Body() searchDto: ProductSearchDto): Product[] {
-    return this.productsService.search(searchDto);
+  async search(@Body() searchDto: ProductSearchDto): Promise<Product[]> {
+    return await this.productsService.search(searchDto);
   }
 
   @Get(':id')
@@ -120,8 +120,8 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  findOne(@Param('id') id: string): Product {
-    return this.productsService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<Product> {
+    return await this.productsService.findOne(id);
   }
 
   @Patch(':id')
@@ -137,8 +137,8 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Product {
-    return this.productsService.update(id, updateProductDto);
+  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<Product> {
+    return await this.productsService.update(id, updateProductDto);
   }
 
   @Patch(':id/availability')
@@ -158,11 +158,11 @@ export class ProductsController {
     status: 400,
     description: 'Bad request - invalid availability value',
   })
-  updateAvailability(
+  async updateAvailability(
     @Param('id') id: string,
     @Body() updateAvailabilityDto: UpdateAvailabilityDto,
-  ): Product {
-    return this.productsService.updateAvailability(id, updateAvailabilityDto.availability);
+  ): Promise<Product> {
+    return await this.productsService.updateAvailability(id, updateAvailabilityDto.availability);
   }
 
   @Patch(':id/mark-sold')
@@ -177,8 +177,8 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  markAsSold(@Param('id') id: string): Product {
-    return this.productsService.markAsSold(id);
+  async markAsSold(@Param('id') id: string): Promise<Product> {
+    return await this.productsService.markAsSold(id);
   }
 
   @Patch(':id/archive')
@@ -193,8 +193,8 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  archive(@Param('id') id: string): Product {
-    return this.productsService.archive(id);
+  async archive(@Param('id') id: string): Promise<Product> {
+    return await this.productsService.archive(id);
   }
 
   @Patch(':id/restore')
@@ -209,8 +209,8 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  restore(@Param('id') id: string): Product {
-    return this.productsService.restore(id);
+  async restore(@Param('id') id: string): Promise<Product> {
+    return await this.productsService.restore(id);
   }
 
   @Delete(':id')
@@ -234,7 +234,7 @@ export class ProductsController {
     description: 'Product not found',
   })
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id') id: string): { message: string } {
-    return this.productsService.remove(id);
+  async remove(@Param('id') id: string): Promise<{ message: string }> {
+    return await this.productsService.remove(id);
   }
 }

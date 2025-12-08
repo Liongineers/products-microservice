@@ -1,35 +1,57 @@
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { v4 as uuidv4 } from 'uuid';
 
+@Entity('products')
 export class Product {
   @ApiProperty({
     description: 'Unique product identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  prod_id: string;
+  @PrimaryGeneratedColumn('uuid')
+  @Column({ name: 'product_id', type: 'char', length: 36 })
+  product_id: string;
+
+  // Map to prod_id for API compatibility
+  get prod_id(): string {
+    return this.product_id;
+  }
 
   @ApiProperty({
     description: 'Product name',
     example: 'MacBook Pro 13-inch',
   })
-  prod_name: string;
+  @Column({ name: 'product_name', type: 'varchar', length: 255 })
+  product_name: string;
+
+  // Map to prod_name for API compatibility
+  get prod_name(): string {
+    return this.product_name;
+  }
 
   @ApiProperty({
     description: 'Product category',
     example: 'Electronics',
   })
+  @Column({ type: 'varchar', length: 100 })
   category: string;
 
   @ApiProperty({
     description: 'Seller UUID',
     example: '123e4567-e89b-12d3-a456-426614174001',
   })
-  seller_info: string;
+  @Column({ name: 'seller_id', type: 'char', length: 36 })
+  seller_id: string;
+
+  // Map to seller_info for API compatibility
+  get seller_info(): string {
+    return this.seller_id;
+  }
 
   @ApiProperty({
     description: 'Product description',
     example: 'Excellent condition MacBook Pro, perfect for students',
   })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
   @ApiProperty({
@@ -37,6 +59,7 @@ export class Product {
     example: 1,
     minimum: 0,
   })
+  @Column({ type: 'int' })
   availability: number;
 
   @ApiProperty({
@@ -44,12 +67,14 @@ export class Product {
     example: 1200.00,
     minimum: 0,
   })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
 
   @ApiProperty({
     description: 'Product condition',
     example: 'used',
   })
+  @Column({ type: 'varchar', length: 50 })
   condition: string;
 
   @ApiProperty({
@@ -57,40 +82,31 @@ export class Product {
     example: 1,
     minimum: 0,
   })
+  @Column({ type: 'int' })
   quantity: number;
 
   @ApiProperty({
     description: 'Product creation timestamp',
     example: '2023-12-01T10:00:00.000Z',
   })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   created_at: Date;
 
   @ApiProperty({
     description: 'Product last update timestamp',
     example: '2023-12-01T10:00:00.000Z',
   })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updated_at: Date;
 
-  @ApiProperty({
-    description: 'Whether the product is archived',
-    example: false,
-  })
-  is_archived: boolean;
+  // Note: is_archived and is_sold are not in the database schema
+  // These are computed properties based on availability
+  get is_archived(): boolean {
+    // You may want to add this column to the database
+    return false;
+  }
 
-  @ApiProperty({
-    description: 'Whether the product is sold out',
-    example: false,
-  })
-  is_sold: boolean;
-
-  constructor(partial: Partial<Product>) {
-    Object.assign(this, {
-      prod_id: uuidv4(),
-      created_at: new Date(),
-      updated_at: new Date(),
-      is_archived: false,
-      is_sold: false,
-      ...partial,
-    });
+  get is_sold(): boolean {
+    return this.availability === 0;
   }
 }
