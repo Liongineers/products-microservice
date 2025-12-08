@@ -18,9 +18,9 @@ curl -X POST "https://products-microservice-471529071641.us-east1.run.app/produc
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
-    "prod_name": "MacBook Pro 13-inch",
+    "product_name": "MacBook Pro 13-inch",
     "category": "Electronics",
-    "seller_info": "123e4567-e89b-12d3-a456-426614174001",
+    "seller_id": "123e4567-e89b-12d3-a456-426614174001",
     "description": "Excellent condition MacBook Pro, perfect for students",
     "availability": 1,
     "price": 1200.00,
@@ -29,7 +29,7 @@ curl -X POST "https://products-microservice-471529071641.us-east1.run.app/produc
   }'
 ```
 
-**Save the `prod_id` from the response!** Example: `PRODUCT_ID="123e4567-e89b-12d3-a456-426614174000"`
+**Save the `product_id` from the response!** Example: `PRODUCT_ID="123e4567-e89b-12d3-a456-426614174000"`
 
 ### 2. Get All Products
 ```bash
@@ -83,6 +83,7 @@ curl -X PATCH "https://products-microservice-471529071641.us-east1.run.app/produ
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
+    "product_name": "Updated MacBook Pro",
     "price": 1100.00,
     "description": "Updated: Price reduced!"
   }'

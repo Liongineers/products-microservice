@@ -31,6 +31,12 @@ import { Product } from './entities/product.entity';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @Get('test-db')
+  @ApiOperation({ summary: 'Test database connection' })
+  async testDb() {
+    return this.productsService.testDbConnection();
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new product' })
   @ApiResponse({
@@ -42,7 +48,7 @@ export class ProductsController {
     status: 400,
     description: 'Bad request - validation failed',
   })
-  async create(@Body() createProductDto: CreateProductDto): Promise<Product> {
+  async create(@Body() createProductDto: CreateProductDto): Promise<any> {
     return await this.productsService.create(createProductDto);
   }
 
@@ -70,7 +76,7 @@ export class ProductsController {
     @Query('min_availability') min_availability?: number,
     @Query('is_archived') is_archived?: boolean,
     @Query('is_sold') is_sold?: boolean,
-  ): Promise<Product[]> {
+  ): Promise<any[]> {
     const filters: ProductFiltersDto = {
       category,
       seller_info,
@@ -92,7 +98,7 @@ export class ProductsController {
     description: 'Products retrieved successfully',
     type: [Product],
   })
-  async findBySeller(@Param('seller_id') sellerId: string): Promise<Product[]> {
+  async findBySeller(@Param('seller_id') sellerId: string): Promise<any[]> {
     return await this.productsService.findBySeller(sellerId);
   }
 
@@ -104,7 +110,7 @@ export class ProductsController {
     description: 'Search results retrieved successfully',
     type: [Product],
   })
-  async search(@Body() searchDto: ProductSearchDto): Promise<Product[]> {
+  async search(@Body() searchDto: ProductSearchDto): Promise<any[]> {
     return await this.productsService.search(searchDto);
   }
 
@@ -120,7 +126,7 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  async findOne(@Param('id') id: string): Promise<Product> {
+  async findOne(@Param('id') id: string): Promise<any> {
     return await this.productsService.findOne(id);
   }
 
@@ -137,7 +143,7 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<any> {
     return await this.productsService.update(id, updateProductDto);
   }
 
@@ -161,7 +167,7 @@ export class ProductsController {
   async updateAvailability(
     @Param('id') id: string,
     @Body() updateAvailabilityDto: UpdateAvailabilityDto,
-  ): Promise<Product> {
+  ): Promise<any> {
     return await this.productsService.updateAvailability(id, updateAvailabilityDto.availability);
   }
 
@@ -177,7 +183,7 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  async markAsSold(@Param('id') id: string): Promise<Product> {
+  async markAsSold(@Param('id') id: string): Promise<any> {
     return await this.productsService.markAsSold(id);
   }
 
@@ -193,7 +199,7 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  async archive(@Param('id') id: string): Promise<Product> {
+  async archive(@Param('id') id: string): Promise<any> {
     return await this.productsService.archive(id);
   }
 
@@ -209,7 +215,7 @@ export class ProductsController {
     status: 404,
     description: 'Product not found',
   })
-  async restore(@Param('id') id: string): Promise<Product> {
+  async restore(@Param('id') id: string): Promise<any> {
     return await this.productsService.restore(id);
   }
 
